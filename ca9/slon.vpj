@@ -159,9 +159,9 @@
                 <Folder
                     Name="utils"
                     Filters="">
-                   <F N="/opt/cad/altera/16.1/embedded/ip/altera/hps/altera_hps/hwlib/src/utils/alt_p2uart.c"/>
-                   <F N="/opt/cad/altera/16.1/embedded/ip/altera/hps/altera_hps/hwlib/src/utils/alt_printf.c"/>
-                   <F N="/opt/cad/altera/16.1/embedded/ip/altera/hps/altera_hps/hwlib/src/utils/alt_retarget_gnu.c"/>
+                    <F N="/opt/cad/altera/16.1/embedded/ip/altera/hps/altera_hps/hwlib/src/utils/alt_p2uart.c"/>
+                    <F N="/opt/cad/altera/16.1/embedded/ip/altera/hps/altera_hps/hwlib/src/utils/alt_printf.c"/>
+                    <F N="/opt/cad/altera/16.1/embedded/ip/altera/hps/altera_hps/hwlib/src/utils/alt_retarget_gnu.c"/>
                 </Folder>
                 <Folder
                     Name="hwmgr"
@@ -202,6 +202,6 @@
                 </Folder>
             </Folder>
         </Folder>
+        <F N="1"/>
     </Files>
 </Project>
-

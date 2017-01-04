@@ -2,7 +2,7 @@
 #
 #     SCons main construct file
 #
-#     Processor: Cortex-M 
+#     Processor: Cortex-A 
 #
 #     Toolkit:   arm-none-eabi
 #
@@ -17,6 +17,7 @@ import subprocess
 import re
 import struct
 import binascii
+import fnmatch
 from intelhex import IntelHex
 from datetime import datetime
 
@@ -31,18 +32,36 @@ import scmIC
 #
 #-------------------------------------------------------------------------------
 #
+#     Altera HWLIB 
+#
+HWLIB = '/opt/cad/altera/16.1/embedded/ip/altera/hps/altera_hps/hwlib'
+
+HWLIB_SRC    = os.path.join(HWLIB, 'src/hwmgr')
+HWLIB_SRC_CV = os.path.join(HWLIB_SRC, 'soc_cv_av')
+
+HWLIB_INC    = os.path.join(HWLIB, 'inclule')
+HWLIB_INC_CV = os.path.join(HWLIB_INC, 'soc_cv_av')
+HWLIB_INC_AL = os.path.join(HWLIB_INC_CV, 'socal')
+
+#-------------------------------------------------------------------------------
+#
 #     Project settings
 #
 ProjectName  = 'asoc'
 
-HWLIB = '/opt/cad/altera/16.1/embedded/ip/altera/hps/altera_hps/hwlib'
-
 RootDir      = '../'                          
-SourceDirs   = ['src'
-               #os.path.join(HWLIB, 'src/hwmgr'),
-               #os.path.join(HWLIB, 'src/hwmgr/soc_cv_av'),
-               #os.path.join(HWLIB, 'src/utils')
-               ]
+SourceDirs   = ['src']
+
+SourceFiles = [os.path.join(HWLIB_SRC_CV, 'alt_clock_manager.c')]
+
+
+#   HWLIBS_SRC    := $(HWLIBS_DIR)/alt_watchdog.c \
+#                    $(HWLIBS_DIR)/$(ALT_DEVICE_FAMILY)/alt_clock_manager.c \
+#                    $(HWLIBS_DIR)/alt_timers.c \
+#                    $(HWLIBS_DIR)/alt_cache.c \
+#                    $(HWLIBS_DIR)/alt_globaltmr.c \
+#                    $(HWLIBS_DIR)/$(ALT_DEVICE_FAMILY)/alt_fpga_manager.c
+
 
                 
 #--------------------------------------
@@ -180,7 +199,6 @@ FLAGS    += IncludePath
 FLAGS    += DebugLevel
 FLAGS    += ' -pipe'
 FLAGS    += ' -ffunction-sections -fdata-sections'
-FLAGS    += IncludePath + Optimization 
 FLAGS    += ' -DBUILD_DATE=\"' + BUILD_DATE + '\"'
 FLAGS    += ' -DBUILD_TIME=\"' + BUILD_TIME + '\"'
 FLAGS    += ExtraFlags
@@ -189,10 +207,11 @@ GCCFLAGS  = FLAGS
 GCCFLAGS += ' -c'
 GCCFLAGS += ' -MD' 
 GCCFLAGS += ' -DPRINTF_FLOAT -fomit-frame-pointer -ffast-math'
-GCCFLAGS += ' -Wall' 
-GCCFLAGS += ' -Wextra'
-GCCFLAGS += ' -Wcast-align -Wpointer-arith -Wredundant-decls'
-GCCFLAGS += ' -Wshadow -Wcast-qual -pedantic'
+
+GCC_W_FLAGS  = ' -Wall' 
+GCC_W_FLAGS += ' -Wextra'
+GCC_W_FLAGS += ' -Wcast-align -Wpointer-arith -Wredundant-decls'
+GCC_W_FLAGS += ' -Wshadow -Wcast-qual -pedantic'
 #-----------------------------------------------------------
 AFLAGS    = FLAGS           
 #-----------------------------------------------------------
@@ -239,7 +258,11 @@ def compile_c(target, source, env):
     #   Launch compiler
     #
     print 'cc: ' + os.path.basename( str(source[0]) )
-    cmd = env['CC'] + env['CFLAGS'] + ' -o ' + str(target[0]) + ' ' + str(source[0])
+    if HWLIB in str(source[0]):
+        FLAGS = env['CFLAGS']
+    else:
+        FLAGS = env['CFLAGS'] + ' ' + env['GCC_W_FLAGS']
+    cmd = env['CC'] + FLAGS + ' -o ' + str(target[0]) + ' ' + str(source[0])
     rcode, out, err = utils.pexec(cmd)
     out += err
     if out:        print out.replace('`', '\'')
@@ -351,6 +374,7 @@ def build_bin(target, source, env):
     cmd  =  env['CC'] + ' -o ' + str(target[0]) + src_list + env['LFLAGS'] +\
            ' -Wl,-Map=' + os.path.join(ListDir, utils.namegen(str(target[0]), MapExt)) + ',--cref'
            
+    print cmd
     rcode, out, err = utils.pexec(cmd)
     out += err
     if out: print out.replace('`', '\'')
@@ -432,8 +456,9 @@ env['SIZE'         ] = SIZE
 env['AFLAGS'       ] = AFLAGS
 env['CFLAGS'       ] = CFLAGS
 env['CXXFLAGS'     ] = CXXFLAGS
+env['GCC_W_FLAGS'  ] = GCC_W_FLAGS
 env['LFLAGS'       ] = LFLAGS
-env['SRC_PATH'     ] = SourceDirs[0:2] 
+env['SRC_PATH'     ] = SourceDirs
 env['CPPPATH'      ] = SourceDirs + ToolkitIncPath
 env['FIRST_ENTRY'  ] = FirstEntry
 
@@ -441,6 +466,14 @@ env['FIRST_ENTRY'  ] = FirstEntry
 #
 #    Service functions
 #
+#-------------------------------------------------------------------------------
+def files_by_ext(l, ext):
+    res = []
+    for f in l:
+        if fnmatch.fnmatch(f, '*.' + ext):
+            res.append(f)
+            
+    return res
 #-------------------------------------------------------------------------------
 #
 #   Make dictionary in form { src : obj } from input source list
@@ -485,6 +518,7 @@ c_files = []
 for i in SourceDirs:
     c_files += glob.glob(i + '/*.' + CExt)
 
+c_files += files_by_ext(SourceFiles, 'c')
 c = make_target_dict(c_files)
 
 #-------------------------------------------------------------------------------
@@ -495,6 +529,7 @@ cpp_files = []
 for i in SourceDirs:
     cpp_files += glob.glob(i + '/*.' + CppExt)
 
+cpp_files += files_by_ext(SourceFiles, 'cpp')
 cpp = make_target_dict(cpp_files)
        
 #-------------------------------------------------------------------------------
@@ -505,6 +540,8 @@ asm_files = []
 for i in SourceDirs:
     asm_files += glob.glob(i + '/*.' + AsmExt)
 
+                                           
+asm_files += files_by_ext(SourceFiles, 'S')
 asm = make_target_dict(asm_files)
 
 #-------------------------------------------------------------------------------
