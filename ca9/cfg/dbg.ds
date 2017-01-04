@@ -1,0 +1,20 @@
+#
+# stop processor if running
+#
+stop
+wait 2s
+
+#
+# Load Symbol File for current Sourcery ELF
+#
+#file $sdir/hello.axf
+
+
+define rl
+   load
+   reset system
+   start
+end
+
+
+
