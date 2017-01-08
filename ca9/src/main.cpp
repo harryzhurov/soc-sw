@@ -116,6 +116,8 @@ uint32_t fib(uint32_t n)
 //---------------------------------------------------------------------------
 void init()
 {
+    
+    alt_clk_clkmgr_init();
     alt_gpio_init();
 //  alt_gpio_port_datadir_set(ALT_GPIO_PORTB,
 //                            ALT_GPIO_SWPORTA_DDR_GPIO_SWPORTA_DDR_SET_MSK,

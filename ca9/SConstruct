@@ -52,7 +52,8 @@ ProjectName  = 'asoc'
 RootDir      = '../'                          
 SourceDirs   = ['src']
 
-SourceFiles = [os.path.join(HWLIB_SRC_CV, 'alt_clock_manager.c')]
+SourceFiles  = []
+SourceFiles += [os.path.join(HWLIB_SRC_CV, 'alt_clock_manager.c')]
 
 
 #   HWLIBS_SRC    := $(HWLIBS_DIR)/alt_watchdog.c \
@@ -191,9 +192,10 @@ LinkerMainScript   = os.path.join(ConfigDir, 'asoc.' + LdExt)
 #    The options
 #
 FLAGS     = ' -mcpu=' + CPU #+ ' -mthumb2'
-#FLAGS    += ' -march=armv7' 
+#FLAGS    += ' -march=armv7-a' 
 FLAGS    += ' -mtune=cortex-a9' 
 FLAGS    += ' -mfloat-abi=hard' 
+FLAGS    += ' -mfpu=vfpv3' 
 FLAGS    += ' -Dsoc_cv_av' 
 FLAGS    += IncludePath
 FLAGS    += DebugLevel
@@ -293,7 +295,11 @@ def compile_cpp(target, source, env):
     #   Launch compiler
     #
     print 'cc: ' + os.path.basename( str(source[0]) )
-    cmd = env['CC'] + env['CXXFLAGS'] + ' -o ' + str(target[0]) + ' ' + os.path.abspath(str(source[0]))
+    if HWLIB in str(source[0]):
+        FLAGS = env['CXXFLAGS']
+    else:
+        FLAGS = env['CXXFLAGS'] + ' ' + env['GCC_W_FLAGS']
+    cmd = env['CC'] + FLAGS + ' -o ' + str(target[0]) + ' ' + os.path.abspath(str(source[0]))
     rcode, out, err = utils.pexec(cmd)
     out += err
     if out:        print out.replace('`', '\'')
@@ -374,7 +380,7 @@ def build_bin(target, source, env):
     cmd  =  env['CC'] + ' -o ' + str(target[0]) + src_list + env['LFLAGS'] +\
            ' -Wl,-Map=' + os.path.join(ListDir, utils.namegen(str(target[0]), MapExt)) + ',--cref'
            
-    print cmd
+    #print cmd
     rcode, out, err = utils.pexec(cmd)
     out += err
     if out: print out.replace('`', '\'')
